@@ -129,6 +129,13 @@ func _ready() -> void:
     if map_sprite:
         map_sprite.get_parent().remove_child(map_sprite)
         map_container.add_child(map_sprite)
+        # Flip the map horizontally so that the coordinate system's
+        # origin (0,0) corresponds to the top‑right of the map image.
+        # Sprite2D provides a flip_h property which mirrors the texture
+        # around its origin.  After flipping, we shift the sprite by
+        # its width so that the right edge aligns with x=0.
+        map_sprite.flip_h = true
+        map_sprite.position.x = map_sprite.texture.get_size().x
     if adv_container:
         adv_container.get_parent().remove_child(adv_container)
         map_container.add_child(adv_container)
