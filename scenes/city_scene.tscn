@@ -1,12 +1,12 @@
-[gd_scene load_steps=3 format=3 uid="uid://xb3ddku43f3n"]
-
-[ext_resource type="Script" path="res://scripts/city_scene.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://bttt18eg4yx54" path="res://assets/orario_map.png" id="2"]
+[gd_scene load_steps=4 format=3]
+[ext_resource path="res://scripts/city_scene.gd" type="Script" id=1]
+[ext_resource path="res://assets/orario_map.png" type="Texture2D" id=2]
+[ext_resource path="res://scenes/adventurer.tscn" type="PackedScene" id=3]
 
 [node name="CityScene" type="Node2D"]
-script = ExtResource("1")
+script = ExtResource(1)
 
 [node name="CityScene#Map" type="Sprite2D" parent="."]
-texture = ExtResource("2")
+texture = ExtResource(2)
 
 [node name="CityScene#Adventurers" type="Node2D" parent="."]
