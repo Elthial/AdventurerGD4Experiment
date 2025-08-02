@@ -30,15 +30,26 @@ var money : int = 0
 # Preload the dot texture used for icons
 var DotTexture : Texture2D = preload("res://assets/dot.png")
 
-# Define key locations on the map.  Coordinates are in pixel space relative to
-# the 1024x1024 map texture.  These were chosen to roughly align with
-# distinct districts and landmarks visible on the map.  Feel free to tweak
-# them later.
-const HQ_POS : Vector2 = Vector2(180, 770)
+# Preload unique icons for each location.  These textures are the same
+# dimensions as the dot and provide distinct symbols for HQ, dungeon,
+# healer, blacksmith and inn.  If any of these textures are missing,
+# the code will fall back to the DotTexture.
+var HqIcon : Texture2D = preload("res://assets/hq_icon.png")
+var DungeonIcon : Texture2D = preload("res://assets/dungeon_icon.png")
+var HealerIcon : Texture2D = preload("res://assets/healer_icon.png")
+var BlacksmithIcon : Texture2D = preload("res://assets/blacksmith_icon.png")
+var InnIcon : Texture2D = preload("res://assets/inn_icon.png")
+
+# Define key locations on the map.  Coordinates are expressed relative to
+# the top‑right corner of the 1024×1024 map texture (mapXY (0,0) is the
+# top‑right of the map).  The x coordinate counts leftwards from the
+# right edge.  These values were derived by taking (1024 - x) for the
+# original left‑based coordinates.  Feel free to tweak them later.
+const HQ_POS      : Vector2 = Vector2(844, 770)
 const DUNGEON_POS : Vector2 = Vector2(512, 512)
-const HEALER_POS : Vector2 = Vector2(700, 300)
-const BLACKSMITH_POS : Vector2 = Vector2(820, 650)
-const INN_POS : Vector2 = Vector2(300, 300)
+const HEALER_POS  : Vector2 = Vector2(324, 300)
+const BLACKSMITH_POS : Vector2 = Vector2(204, 650)
+const INN_POS     : Vector2 = Vector2(724, 300)
 
 # Colours for the different service icons.  These will modulate the dot
 # texture to produce distinct coloured markers on the map.
@@ -53,26 +64,21 @@ const ICON_COLOURS = {
 # Preload scenes and runs
 var AdventurerScene : PackedScene = preload("res://scenes/adventurer.tscn")
 
-## Helper that creates a coloured dot at a given position on the map.  Uses
-## the preloaded DotTexture and modulates its colour.  The icons are added
-## directly under CityScene so they appear above the map but below
-## adventurers.
-## Creates a small icon at a given map position.  This uses an Area2D
-## with a circular collision shape so that mouse hover events can be
-## detected.  When the mouse enters the icon area, the tooltip is
-## displayed with the location's name.
-func _create_location_icon(name : String, pos : Vector2, colour : Color) -> void:
+## Helper to create a location icon at a given position on the map.  Each
+## icon is represented as an Area2D with a Sprite2D using the provided
+## texture.  A circular collision shape enables mouse hover detection.
+func _create_location_icon(name : String, pos : Vector2, tex : Texture2D) -> void:
     # Area2D to detect mouse hover
     var area := Area2D.new()
     area.position = pos
-    # Sprite to display the dot
+    # Sprite to display the icon
     var sprite := Sprite2D.new()
-    sprite.texture = DotTexture
-    sprite.modulate = colour
+    sprite.texture = tex if tex != null else DotTexture
     area.add_child(sprite)
-    # Collision shape for hover detection
+    # Collision shape based on the texture size
     var shape := CircleShape2D.new()
-    shape.radius = DotTexture.get_width() * 0.5
+    var base_tex : Texture2D = tex if tex != null else DotTexture
+    shape.radius = base_tex.get_width() * 0.5
     var coll := CollisionShape2D.new()
     coll.shape = shape
     area.add_child(coll)
@@ -124,11 +130,11 @@ func _ready() -> void:
     _update_map_zoom()
 
     # Create service icons with tooltips and add them to the map container.
-    _create_location_icon("HQ", HQ_POS, ICON_COLOURS["hq"])
-    _create_location_icon("Dungeon", DUNGEON_POS, ICON_COLOURS["dungeon"])
-    _create_location_icon("Healer", HEALER_POS, ICON_COLOURS["healer"])
-    _create_location_icon("Blacksmith", BLACKSMITH_POS, ICON_COLOURS["blacksmith"])
-    _create_location_icon("Inn", INN_POS, ICON_COLOURS["inn"])
+    _create_location_icon("HQ", HQ_POS, HqIcon)
+    _create_location_icon("Dungeon", DUNGEON_POS, DungeonIcon)
+    _create_location_icon("Healer", HEALER_POS, HealerIcon)
+    _create_location_icon("Blacksmith", BLACKSMITH_POS, BlacksmithIcon)
+    _create_location_icon("Inn", INN_POS, InnIcon)
 
     # Spawn an adventurer at the HQ.  Set its home and service locations.
     var adv : Adventurer = AdventurerScene.instantiate()
@@ -335,16 +341,40 @@ func _update_status_label() -> void:
 
 ## Input handler to manage zoom and tooltip positioning.
 func _unhandled_input(event: InputEvent) -> void:
-    # Mouse wheel zoom
+    # Mouse wheel zoom with cursor focus.  When the user scrolls, adjust the
+    # zoom level and reposition the map so that the location under the
+    # cursor remains under the cursor after zooming.  The zoom is clamped
+    # between min_zoom and max_zoom.  After adjusting position, clamp
+    # the map within the available area so it does not drift off screen.
     if event is InputEventMouseButton:
         var mb := event as InputEventMouseButton
-        if mb.pressed:
+        if mb.pressed and (mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+            # Current viewport and UI sizes
+            var view_size : Vector2 = get_viewport_rect().size
+            var top_height : float = top_bar.get_rect().size.y if top_bar else 0.0
+            var console_ratio : float = 0.25
+            var console_height : float = view_size.y * console_ratio
+            var available_origin : Vector2 = Vector2(0.0, top_height)
+            var available_size : Vector2 = Vector2(view_size.x, view_size.y - top_height - console_height)
+            # Local map coordinates of the mouse before zoom
+            var mouse_pos : Vector2 = mb.position
+            var local_before : Vector2 = (mouse_pos - map_container.position) / current_zoom
+            # Adjust zoom level
             if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
                 current_zoom = clamp(current_zoom + 0.1, min_zoom, max_zoom)
-                _update_map_zoom()
             elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
                 current_zoom = clamp(current_zoom - 0.1, min_zoom, max_zoom)
-                _update_map_zoom()
+            # Apply new scale
+            map_container.scale = Vector2(current_zoom, current_zoom)
+            # Calculate new map size
+            var map_scaled_size : Vector2 = map_sprite.texture.get_size() * current_zoom
+            # Set map position so that local_before stays under the cursor
+            map_container.position = mouse_pos - local_before * current_zoom
+            # Clamp the position within available area
+            var min_pos : Vector2 = Vector2(available_origin.x + available_size.x - map_scaled_size.x, available_origin.y + available_size.y - map_scaled_size.y)
+            var max_pos : Vector2 = available_origin
+            map_container.position.x = clamp(map_container.position.x, min_pos.x, max_pos.x)
+            map_container.position.y = clamp(map_container.position.y, min_pos.y, max_pos.y)
     # Update tooltip position
     if event is InputEventMouseMotion and tooltip_label and tooltip_label.visible:
         var mm := event as InputEventMouseMotion
