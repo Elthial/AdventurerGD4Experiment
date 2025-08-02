@@ -1,0 +1,13 @@
+ea4bc82a6ad023ab7ee23ee620429895
+::res://::1754162461
+readme.txt::TextFile::-1::1754160041::0::1::::<><>::
+::res://assets/::1754162449
+dot.png::CompressedTexture2D::4385114673392854016::1754162028::1754162461::1::::<><>::
+orario_map.png::CompressedTexture2D::3760433683409051845::1754162028::1754162461::1::::<><>::
+::res://scenes/::1754162336
+adventurer.tscn::PackedScene::-1::1754162028::0::1::::<><>::res://scripts/adventurer.gd<>res://assets/dot.png
+city_scene.tscn::PackedScene::1618113388574644361::1754162336::0::1::::<><>::res://scripts/city_scene.gd<>uid://dtn3mqpjntico::::res://assets/orario_map.png
+::res://scripts/::1754162270
+adventurer.gd::GDScript::-1::1754162028::0::1::::Adventurer<>Node2D<>::
+city_scene.gd::GDScript::-1::1754162028::0::1::::<>Node2D<>::
+dungeon_run.gd::GDScript::-1::1754162028::0::1::::DungeonRun<>Node<>::
