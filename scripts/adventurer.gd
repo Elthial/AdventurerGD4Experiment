@@ -49,6 +49,10 @@ const NEED_THRESHOLD : float = 30.0
 var pending_need_type : String = ""
 var pending_need_duration : float = 0.0
 
+## Position of the familia home base (HQ). Used when returning from dungeon.
+var home_base_pos : Vector2 = Vector2.ZERO
+var dungeon_pos : Vector2 = Vector2.ZERO
+
 ## References to world locations supplied by the spawner (CityScene).  The
 ## adventurer uses these positions to travel when satisfying needs.  Set
 ## these after instantiation.
@@ -59,8 +63,7 @@ var blacksmith_pos : Vector2 = Vector2.ZERO
 ## Signal emitted whenever the adventurer outputs debug information.  The
 ## CityScene listens to this signal and appends messages to its console.
 signal debug_output(message : String)
-## Position of the familia home base (HQ). Used when returning from dungeon.
-var home_base_pos : Vector2 = Vector2.ZERO
+
 
 ## Timer used to throttle debug output to the console.
 var _debug_timer : float = 0.0

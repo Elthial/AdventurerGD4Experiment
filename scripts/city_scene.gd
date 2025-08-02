@@ -77,7 +77,7 @@ var AdventurerScene : PackedScene = preload("res://scenes/adventurer.tscn")
 ## Helper to create a location icon at a given position on the map.  Each
 ## icon is represented as an Area2D with a Sprite2D using the provided
 ## texture.  A circular collision shape enables mouse hover detection.
-func _create_location_icon(name : String, pos : Vector2, tex : Texture2D) -> void:
+func _create_location_icon(location_name : String, pos : Vector2, tex : Texture2D) -> void:
 	# Area2D to detect mouse hover
 	var area := Area2D.new()
 	# Place the icon at the given position.  The map coordinate system
@@ -95,7 +95,7 @@ func _create_location_icon(name : String, pos : Vector2, tex : Texture2D) -> voi
 	coll.shape = shape
 	area.add_child(coll)
 	# Connect signals for tooltip
-	area.connect("mouse_entered", Callable(self, "_on_icon_mouse_entered").bind(name))
+	area.connect("mouse_entered", Callable(self, "_on_icon_mouse_entered").bind(location_name))
 	area.connect("mouse_exited", Callable(self, "_on_icon_mouse_exited"))
 	# Add to map container so it scales with the map
 	map_container.add_child(area)
@@ -161,6 +161,7 @@ func _ready() -> void:
 	adv.global_position = HQ_POS
 	adv.adname = "Bell"  # placeholder name
 	adv.home_base_pos = HQ_POS
+	adv.dungeon_pos = DUNGEON_POS
 	adv.inn_pos = INN_POS
 	adv.healer_pos = HEALER_POS
 	adv.blacksmith_pos = BLACKSMITH_POS
@@ -350,9 +351,9 @@ func _create_console() -> void:
 	console_container.add_child(console_label)
 
 ## Handler for mouse entering a location icon.  Shows the tooltip with the name.
-func _on_icon_mouse_entered(name : String) -> void:
+func _on_icon_mouse_entered(tooltip_name : String) -> void:
 	if tooltip_label:
-		tooltip_label.text = name
+		tooltip_label.text = tooltip_name
 		tooltip_label.visible = true
 
 ## Handler for mouse exiting a location icon.  Hides the tooltip.
