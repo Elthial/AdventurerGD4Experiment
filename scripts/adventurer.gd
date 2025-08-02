@@ -66,147 +66,147 @@ var home_base_pos : Vector2 = Vector2.ZERO
 var _debug_timer : float = 0.0
 
 func _ready() -> void:
-    # Ensure our sprite is centered on the node
-    pass
+	# Ensure our sprite is centered on the node
+	pass
 
 func set_travel(destination : Vector2) -> void:
-    state = AdventurerState.TRAVEL
-    target_position = destination
+	state = AdventurerState.TRAVEL
+	target_position = destination
 
 func set_need(type : String, duration : float) -> void:
-    state = AdventurerState.NEED
-    need_type = type
-    need_timer = duration
+	state = AdventurerState.NEED
+	need_type = type
+	need_timer = duration
 
 func start_dungeon_run(run : DungeonRun) -> void:
-    state = AdventurerState.DUNGEON
-    dungeon_run = run
+	state = AdventurerState.DUNGEON
+	dungeon_run = run
 
 func _physics_process(delta : float) -> void:
-    # Decrease needs over time.  Sleepiness decreases at a constant rate,
-    # hunger decreases faster while travelling or fighting, boredom
-    # decreases faster when not fighting.
-    var base_decay := delta * 2.0  # base need decay per second
-    # Sleepiness decays constantly
-    sleepiness -= base_decay * 0.5
-    # Hunger decays faster when travelling or in the dungeon
-    var hunger_multiplier := 1.0
-    if state == AdventurerState.TRAVEL or state == AdventurerState.DUNGEON:
-        hunger_multiplier = 2.0
-    hunger -= base_decay * hunger_multiplier
-    # Boredom decays faster when not fighting (travel/need)
-    var boredom_multiplier := 1.5
-    if state == AdventurerState.DUNGEON:
-        boredom_multiplier = 0.5
-    boredom -= base_decay * boredom_multiplier
-    # Clamp needs to 0-100 range
-    hunger = clamp(hunger, 0.0, 100.0)
-    sleepiness = clamp(sleepiness, 0.0, 100.0)
-    boredom = clamp(boredom, 0.0, 100.0)
+	# Decrease needs over time.  Sleepiness decreases at a constant rate,
+	# hunger decreases faster while travelling or fighting, boredom
+	# decreases faster when not fighting.
+	var base_decay := delta * 2.0  # base need decay per second
+	# Sleepiness decays constantly
+	sleepiness -= base_decay * 0.5
+	# Hunger decays faster when travelling or in the dungeon
+	var hunger_multiplier := 1.0
+	if state == AdventurerState.TRAVEL or state == AdventurerState.DUNGEON:
+		hunger_multiplier = 2.0
+	hunger -= base_decay * hunger_multiplier
+	# Boredom decays faster when not fighting (travel/need)
+	var boredom_multiplier := 1.5
+	if state == AdventurerState.DUNGEON:
+		boredom_multiplier = 0.5
+	boredom -= base_decay * boredom_multiplier
+	# Clamp needs to 0-100 range
+	hunger = clamp(hunger, 0.0, 100.0)
+	sleepiness = clamp(sleepiness, 0.0, 100.0)
+	boredom = clamp(boredom, 0.0, 100.0)
 
-    # If not currently fulfilling a need and not escaping/dungeon, check for low needs
-    if state == AdventurerState.TRAVEL and pending_need_type == "" and need_type == "":
-        if hunger <= NEED_THRESHOLD:
-            _seek_need("eat", 3.0)
-        elif sleepiness <= NEED_THRESHOLD:
-            _seek_need("sleep", 5.0)
-        elif boredom <= NEED_THRESHOLD:
-            _seek_need("entertain", 4.0)
+	# If not currently fulfilling a need and not escaping/dungeon, check for low needs
+	if state == AdventurerState.TRAVEL and pending_need_type == "" and need_type == "":
+		if hunger <= NEED_THRESHOLD:
+			_seek_need("eat", 3.0)
+		elif sleepiness <= NEED_THRESHOLD:
+			_seek_need("sleep", 5.0)
+		elif boredom <= NEED_THRESHOLD:
+			_seek_need("entertain", 4.0)
 
-    # Debug output roughly once per second
-    _debug_timer += delta
-    if _debug_timer > 1.0:
-        _debug_timer = 0.0
-        # Convert state enum to string for readability
-        var state_str := ""
-        match state:
-            AdventurerState.TRAVEL:
-                state_str = "TRAVEL"
-            AdventurerState.NEED:
-                state_str = "NEED"
-            AdventurerState.DUNGEON:
-                state_str = "DUNGEON"
-            AdventurerState.ESCAPE:
-                state_str = "ESCAPE"
-            _:
-                state_str = str(state)
-        var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [
-            adname, global_position.round(), state_str, hp, hunger, sleepiness, boredom
-        ]
-        print(msg)
-        emit_signal("debug_output", msg)
+	# Debug output roughly once per second
+	_debug_timer += delta
+	if _debug_timer > 1.0:
+		_debug_timer = 0.0
+		# Convert state enum to string for readability
+		var state_str := ""
+		match state:
+			AdventurerState.TRAVEL:
+				state_str = "TRAVEL"
+			AdventurerState.NEED:
+				state_str = "NEED"
+			AdventurerState.DUNGEON:
+				state_str = "DUNGEON"
+			AdventurerState.ESCAPE:
+				state_str = "ESCAPE"
+			_:
+				state_str = str(state)
+		var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [
+			adname, global_position.round(), state_str, hp, hunger, sleepiness, boredom
+		]
+		print(msg)
+		emit_signal("debug_output", msg)
 
-    match state:
-        AdventurerState.TRAVEL:
-            _update_travel(delta)
-        AdventurerState.NEED:
-            _update_need(delta)
-        AdventurerState.DUNGEON:
-            _update_dungeon(delta)
-        AdventurerState.ESCAPE:
-            _update_escape(delta)
+	match state:
+		AdventurerState.TRAVEL:
+			_update_travel(delta)
+		AdventurerState.NEED:
+			_update_need(delta)
+		AdventurerState.DUNGEON:
+			_update_dungeon(delta)
+		AdventurerState.ESCAPE:
+			_update_escape(delta)
 
 func _update_travel(delta : float) -> void:
-    var dir : Vector2 = target_position - global_position
-    var distance : float = dir.length()
-    if distance > 5.0:
-        dir = dir.normalized()
-        global_position += dir * speed * delta
-    else:
-        _arrive_at_destination()
+	var dir : Vector2 = target_position - global_position
+	var distance : float = dir.length()
+	if distance > 5.0:
+		dir = dir.normalized()
+		global_position += dir * speed * delta
+	else:
+		_arrive_at_destination()
 
 func _arrive_at_destination() -> void:
-    # Called when the adventurer reaches its travel destination.  If a
-    # pending need has been set (via _seek_need), transition into the
-    # NEED state using the pending type and duration.  Otherwise fall
-    # back to a default short rest.
-    if pending_need_type != "":
-        set_need(pending_need_type, pending_need_duration)
-        pending_need_type = ""
-        pending_need_duration = 0.0
-    else:
-        # Default: rest for 2 seconds to demonstrate need fulfilment
-        set_need("sleep", 2.0)
+	# Called when the adventurer reaches its travel destination.  If a
+	# pending need has been set (via _seek_need), transition into the
+	# NEED state using the pending type and duration.  Otherwise fall
+	# back to a default short rest.
+	if pending_need_type != "":
+		set_need(pending_need_type, pending_need_duration)
+		pending_need_type = ""
+		pending_need_duration = 0.0
+	else:
+		# Default: rest for 2 seconds to demonstrate need fulfilment
+		set_need("sleep", 2.0)
 
 func _update_need(delta : float) -> void:
-    if need_timer > 0.0:
-        need_timer -= delta
-    else:
-        _finish_need()
+	if need_timer > 0.0:
+		need_timer -= delta
+	else:
+		_finish_need()
 
 func _finish_need() -> void:
-    # Restore stats depending on the need fulfilled
-    match need_type:
-        "sleep":
-            hp = max_hp
-            stamina = 100.0
-            sleepiness = 100.0
-        "eat":
-            stamina = 100.0
-            hunger = 100.0
-        "entertain":
-            morale = 100.0
-            boredom = 100.0
-    need_type = ""
-    # After finishing a need we'll return to travel state and await new orders
-    state = AdventurerState.TRAVEL
+	# Restore stats depending on the need fulfilled
+	match need_type:
+		"sleep":
+			hp = max_hp
+			stamina = 100.0
+			sleepiness = 100.0
+		"eat":
+			stamina = 100.0
+			hunger = 100.0
+		"entertain":
+			morale = 100.0
+			boredom = 100.0
+	need_type = ""
+	# After finishing a need we'll return to travel state and await new orders
+	state = AdventurerState.TRAVEL
 
 func _update_dungeon(delta : float) -> void:
-    if dungeon_run:
-        dungeon_run.update(delta, self)
-        # If the dungeon_run requests exiting, change state
-        if dungeon_run.exiting:
-            state = AdventurerState.ESCAPE
+	if dungeon_run:
+		dungeon_run.update(delta, self)
+		# If the dungeon_run requests exiting, change state
+		if dungeon_run.exiting:
+			state = AdventurerState.ESCAPE
 
 func _update_escape(delta : float) -> void:
-    if dungeon_run:
-        dungeon_run.update_escape(delta, self)
-        if dungeon_run.finished:
-            # Finished returning from the dungeon
-            dungeon_run = null
-            # Set the state back to travel and head home
-            state = AdventurerState.TRAVEL
-            set_travel(home_base_pos)
+	if dungeon_run:
+		dungeon_run.update_escape(delta, self)
+		if dungeon_run.finished:
+			# Finished returning from the dungeon
+			dungeon_run = null
+			# Set the state back to travel and head home
+			state = AdventurerState.TRAVEL
+			set_travel(home_base_pos)
 
 ## Internal helper used to initiate travelling to satisfy a need.  The
 ## destination and duration depend on the need type.  This sets
@@ -214,17 +214,16 @@ func _update_escape(delta : float) -> void:
 ## move the adventurer.  The actual need will be processed in
 ## _arrive_at_destination().
 func _seek_need(type : String, duration : float) -> void:
-    var dest : Vector2 = global_position
-    match type:
-        "sleep":
-            dest = home_base_pos
-        "eat":
-            dest = inn_pos
-        "entertain":
-            dest = inn_pos
-        _:
-            dest = home_base_pos
-    pending_need_type = type
-    pending_need_duration = duration
-    set_travel(dest)
-
+	var dest : Vector2 = global_position
+	match type:
+		"sleep":
+			dest = home_base_pos
+		"eat":
+			dest = inn_pos
+		"entertain":
+			dest = inn_pos
+		_:
+			dest = home_base_pos
+	pending_need_type = type
+	pending_need_duration = duration
+	set_travel(dest)
