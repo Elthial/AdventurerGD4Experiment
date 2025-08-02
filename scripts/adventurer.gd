@@ -24,6 +24,15 @@ var max_hp : float = 100.0
 var stamina : float = 100.0
 var morale : float = 100.0
 
+## Name of this adventurer. Set by the spawner for debugging.
+var name : String = "Adventurer"
+
+## Position of the familia home base (HQ). Used when returning from dungeon.
+var home_base_pos : Vector2 = Vector2.ZERO
+
+## Timer used to throttle debug output to the console.
+var _debug_timer : float = 0.0
+
 func _ready() -> void:
     # Ensure our sprite is centered on the node
     pass
@@ -42,6 +51,25 @@ func start_dungeon_run(run : DungeonRun) -> void:
     dungeon_run = run
 
 func _physics_process(delta : float) -> void:
+    # Print debug information roughly once per second
+    _debug_timer += delta
+    if _debug_timer > 1.0:
+        _debug_timer = 0.0
+        # Convert state enum to string for readability
+        var state_str := ""
+        match state:
+            AdventurerState.TRAVEL:
+                state_str = "TRAVEL"
+            AdventurerState.NEED:
+                state_str = "NEED"
+            AdventurerState.DUNGEON:
+                state_str = "DUNGEON"
+            AdventurerState.ESCAPE:
+                state_str = "ESCAPE"
+            _:
+                state_str = str(state)
+        print("%s | Pos: %s | State: %s | HP: %.1f" % [name, global_position, state_str, hp])
+
     match state:
         AdventurerState.TRAVEL:
             _update_travel(delta)
@@ -103,5 +131,7 @@ func _update_escape(delta : float) -> void:
         if dungeon_run.finished:
             # Finished returning from the dungeon
             dungeon_run = null
+            # Set the state back to travel and head home
             state = AdventurerState.TRAVEL
+            set_travel(home_base_pos)
 
