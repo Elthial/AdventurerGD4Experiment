@@ -90,8 +90,8 @@ func _ready() -> void:
         map_container.add_child(adv_container)
 
     # Compute the minimum zoom so that the map fits entirely within the viewport.
-    var view_size := get_viewport_rect().size
-    var map_size := map_sprite.texture.get_size()
+    var view_size : Vector2 = get_viewport_rect().size
+    var map_size : Vector2 = map_sprite.texture.get_size()
     min_zoom = min(view_size.x / map_size.x, view_size.y / map_size.y)
     max_zoom = 1.0
     current_zoom = min_zoom
@@ -176,8 +176,8 @@ func _update_map_zoom() -> void:
     # Apply uniform scale to the container
     map_container.scale = Vector2(current_zoom, current_zoom)
     # Compute scaled map size and center it within the viewport
-    var view_size := get_viewport_rect().size
-    var map_size := map_sprite.texture.get_size() * current_zoom
+    var view_size : Vector2 = get_viewport_rect().size
+    var map_size : Vector2 = map_sprite.texture.get_size() * current_zoom
     # Position container so that the map is centered
     map_container.position = view_size * 0.5 - map_size * 0.5
 
@@ -272,7 +272,8 @@ func _update_status_label() -> void:
     var status_label : Label = top_bar.get_node("HBoxContainer/StatusLabel")
     # Compute hours and minutes from game_time_seconds
     var hours := int(game_time_seconds / 3600.0)
-    var minutes := int((game_time_seconds % 3600.0) / 60.0)
+    # Use integer division and remainder for minutes to avoid using % on floats
+    var minutes := int(game_time_seconds / 60.0) % 60
     var time_str := "Day %s %02d:%02d" % [day_counter, hours, minutes]
     status_label.text = "%s   |   %d G" % [time_str, money]
 
