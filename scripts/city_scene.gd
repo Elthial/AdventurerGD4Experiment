@@ -91,7 +91,7 @@ func _process(delta : float) -> void:
 ## complete before sending the adventurer back to HQ.  This function runs
 ## asynchronously and does not block the main thread.
 @warning_ignore("unused_parameter")
-async func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
+func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
     # Travel to the dungeon entrance
     adv.set_travel(DUNGEON_POS)
     # Wait until the adventurer is close to the dungeon
