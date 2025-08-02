@@ -3,8 +3,8 @@ extends Node2D
 ## CityScene spawns adventurers and assigns them tasks.  For the MVP it
 ## demonstrates the TravelTo and dungeon state transitions.
 
-@onready var adv_container = $"CityScene#Adventurers"
-@onready var map_sprite = $"CityScene#Map"
+@onready var adv_container = "$\"CityScene#Adventurers\""
+@onready var map_sprite = "$\"CityScene#Map\""
 
 ## Nodes created in code for UI and scaling
 var map_container : Node2D
@@ -21,6 +21,12 @@ var ui_layer : CanvasLayer
 var min_zoom : float = 1.0
 var max_zoom : float = 1.0
 var current_zoom : float = 1.0
+
+## Panning state.  When the user holds the left mouse button and drags,
+## we move the map container by the drag delta.  These variables track
+## whether we are currently panning and store the last mouse position.
+var is_panning : bool = false
+var pan_last_pos : Vector2 = Vector2.ZERO
 
 ## Game time variables
 var game_time_seconds : float = 0.0
@@ -51,26 +57,17 @@ const HEALER_POS     : Vector2 = Vector2(700, 300)
 const BLACKSMITH_POS : Vector2 = Vector2(820, 650)
 const INN_POS        : Vector2 = Vector2(300, 300)
 
-## Because the map's coordinate system uses the top‑right corner as (0,0),
-## we need to convert positions defined relative to the top‑left corner
-## (as above) into top‑right coordinates.  The map texture is loaded
-## through map_sprite at runtime, so we calculate its dimensions once
-## and provide a helper to flip the X axis.  This ensures that the
-## bottom‑right of the image no longer aligns with the dungeon when
-## computing positions.  See _map_to_top_right() below.
-
 ## Size of the map texture, initialised in _ready().  We use @onready
 ## because map_sprite is available only after the scene tree is ready.
 @onready var map_size : Vector2 = map_sprite.texture.get_size()
 
-## Helper to convert a coordinate from the top‑left coordinate system
-## into the top‑right coordinate system.  In top‑right, X increases
-## towards the left of the image while Y still increases downward.
-## Given a position measured from the top‑left (0,0), this function
-## returns the equivalent coordinate measured from the top‑right
-## (map_width,0).
+## We no longer flip the map horizontally, so coordinates use the natural
+## top‑left origin.  All positions are measured from the top‑left corner
+## of the map texture.  As a result, there is no need for a helper to
+## convert positions.  This function simply returns the original position
+## for compatibility with existing calls.
 func _map_to_top_right(pos : Vector2) -> Vector2:
-    return Vector2(map_size.x - pos.x, pos.y)
+    return pos
 
 # Colours for the different service icons.  These will modulate the dot
 # texture to produce distinct coloured markers on the map.
@@ -91,14 +88,9 @@ var AdventurerScene : PackedScene = preload("res://scenes/adventurer.tscn")
 func _create_location_icon(name : String, pos : Vector2, tex : Texture2D) -> void:
     # Area2D to detect mouse hover
     var area := Area2D.new()
-    # Convert the position from a top‑left coordinate into the map's
-    # top‑right coordinate system.  This ensures the map origin
-    # (0,0) corresponds to the top‑right of the texture rather than
-    # the top‑left.  Without this conversion the icons would be
-    # mirrored horizontally and misaligned (the dungeon appearing in
-    # the bottom‑right, for example).
-    var pos_tr : Vector2 = _map_to_top_right(pos)
-    area.position = pos_tr
+    # Place the icon at the given position.  The map coordinate system
+    # now uses the natural top‑left origin, so no conversion is required.
+    area.position = pos
     # Sprite to display the icon
     var sprite := Sprite2D.new()
     sprite.texture = tex if tex != null else DotTexture
@@ -127,15 +119,11 @@ func _ready() -> void:
     add_child(map_container)
     # Reparent the map sprite and adventurer container into the map container
     if map_sprite:
+        # Remove the map sprite from its parent and add it into the map container.
+        # We no longer flip the map horizontally; the coordinate system
+        # uses the top‑left origin.
         map_sprite.get_parent().remove_child(map_sprite)
         map_container.add_child(map_sprite)
-        # Flip the map horizontally so that the coordinate system's
-        # origin (0,0) corresponds to the top‑right of the map image.
-        # Sprite2D provides a flip_h property which mirrors the texture
-        # around its origin.  After flipping, we shift the sprite by
-        # its width so that the right edge aligns with x=0.
-        map_sprite.flip_h = true
-        map_sprite.position.x = map_sprite.texture.get_size().x
     if adv_container:
         adv_container.get_parent().remove_child(adv_container)
         map_container.add_child(adv_container)
@@ -147,20 +135,25 @@ func _ready() -> void:
     _create_tooltip()
     _create_console()
 
-    # Compute the minimum zoom so that the map fits entirely within the
-    # available portion of the viewport.  We reserve a fixed fraction
-    # (25%) of the screen for the console and subtract the top bar height.
+    # Compute the minimum zoom using a “cover” approach so that the map
+    # completely fills the available portion of the viewport.  We reserve
+    # a fixed fraction (25%) of the screen for the console and subtract
+    # the top bar height.  Using max() ensures that whichever ratio is
+    # larger (width or height) determines the zoom, akin to CSS
+    # object-fit: cover【853882587653309†L1341-L1346】.
     var view_size : Vector2 = get_viewport_rect().size
     var map_tex_size : Vector2 = map_sprite.texture.get_size()
     var top_height : float = top_bar.get_rect().size.y
     var console_ratio : float = 0.25
     var console_height : float = view_size.y * console_ratio
     var available_height : float = view_size.y - top_height - console_height
-    # Avoid negative values if the window is very small
     if available_height < 1.0:
         available_height = 1.0
-    min_zoom = min(view_size.x / map_tex_size.x, available_height / map_tex_size.y)
-    max_zoom = 1.0
+    # Use max() to scale the map so it covers the available area without
+    # leaving blank space.
+    min_zoom = max(view_size.x / map_tex_size.x, available_height / map_tex_size.y)
+    # Allow zooming in up to 4× the minimum zoom.
+    max_zoom = min_zoom * 4.0
     current_zoom = min_zoom
     _update_map_zoom()
 
@@ -173,15 +166,12 @@ func _ready() -> void:
 
     # Spawn an adventurer at the HQ.  Set its home and service locations.
     var adv : Adventurer = AdventurerScene.instantiate()
-    # Convert initial positions and service locations to the top‑right
-    # coordinate system before assigning them to the adventurer.  See
-    # _map_to_top_right() for details.
-    adv.global_position = _map_to_top_right(HQ_POS)
+    adv.global_position = HQ_POS
     adv.adname = "Bell"  # placeholder name
-    adv.home_base_pos = _map_to_top_right(HQ_POS)
-    adv.inn_pos = _map_to_top_right(INN_POS)
-    adv.healer_pos = _map_to_top_right(HEALER_POS)
-    adv.blacksmith_pos = _map_to_top_right(BLACKSMITH_POS)
+    adv.home_base_pos = HQ_POS
+    adv.inn_pos = INN_POS
+    adv.healer_pos = HEALER_POS
+    adv.blacksmith_pos = BLACKSMITH_POS
     adv_container.add_child(adv)
     # Connect the adventurer's debug output signal to our console handler.
     adv.connect("debug_output", Callable(self, "_on_adventurer_debug"))
@@ -217,13 +207,9 @@ func _process(delta : float) -> void:
 @warning_ignore("unused_parameter")
 func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
     # Travel to the dungeon entrance
-    # Convert the dungeon position to top‑right coordinates.  Without
-    # conversion the adventurer would travel to an incorrect location on
-    # the mirrored map.
-    var dungeon_pos_tr : Vector2 = _map_to_top_right(DUNGEON_POS)
-    adv.set_travel(dungeon_pos_tr)
+    adv.set_travel(DUNGEON_POS)
     # Wait until the adventurer is close to the dungeon
-    while adv.global_position.distance_to(_map_to_top_right(DUNGEON_POS)) > 5.0:
+    while adv.global_position.distance_to(DUNGEON_POS) > 5.0:
         await get_tree().process_frame
     # Start the dungeon run
     adv.start_dungeon_run(run)
@@ -231,8 +217,8 @@ func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
     while adv.state == Adventurer.AdventurerState.DUNGEON or adv.state == Adventurer.AdventurerState.ESCAPE:
         await get_tree().process_frame
     # Travel back home
-    adv.set_travel(_map_to_top_right(HQ_POS))
-    while adv.global_position.distance_to(_map_to_top_right(HQ_POS)) > 5.0:
+    adv.set_travel(HQ_POS)
+    while adv.global_position.distance_to(HQ_POS) > 5.0:
         await get_tree().process_frame
     # At this point the adventurer has completed the cycle.  Additional
     # behaviour (such as assigning a new task) could be triggered here.
@@ -245,9 +231,7 @@ func _update_map_zoom() -> void:
     # Apply uniform scale to the container
     map_container.scale = Vector2(current_zoom, current_zoom)
     # Compute the available region for the map by subtracting the top bar
-    # height and the console portion from the viewport.  The console is
-    # anchored to the bottom quarter of the screen (0.25), and the top bar
-    # has a fixed pixel height.
+    # height and the console portion from the viewport.
     var view_size : Vector2 = get_viewport_rect().size
     var top_height : float = 0.0
     if top_bar:
@@ -261,6 +245,28 @@ func _update_map_zoom() -> void:
     # Center the scaled map within the available area
     var offset : Vector2 = (available_size - map_scaled_size) * 0.5
     map_container.position = origin + offset
+    # Clamp the map position within the available area after centering.
+    _clamp_map_position()
+
+## Clamp the map container position to ensure that no grey background is
+## exposed.  The map should always cover the entire available area,
+## regardless of zoom or panning.  We compute the minimum and maximum
+## allowed positions based on the available viewport size and the scaled
+## map dimensions.
+func _clamp_map_position() -> void:
+    if not map_sprite or not map_container:
+        return
+    var view_size : Vector2 = get_viewport_rect().size
+    var top_height : float = top_bar.get_rect().size.y if top_bar else 0.0
+    var console_ratio : float = 0.25
+    var console_height : float = view_size.y * console_ratio
+    var available_origin : Vector2 = Vector2(0.0, top_height)
+    var available_size : Vector2 = Vector2(view_size.x, view_size.y - top_height - console_height)
+    var map_scaled_size : Vector2 = map_sprite.texture.get_size() * current_zoom
+    var min_pos : Vector2 = available_origin + available_size - map_scaled_size
+    var max_pos : Vector2 = available_origin
+    map_container.position.x = clamp(map_container.position.x, min_pos.x, max_pos.x)
+    map_container.position.y = clamp(map_container.position.y, min_pos.y, max_pos.y)
 
 ## Creates the top bar UI displaying familia name, log placeholder, in-game time and money.
 func _create_top_bar() -> void:
@@ -381,44 +387,38 @@ func _update_status_label() -> void:
     var time_str := "Day %s %02d:%02d" % [day_counter, hours, minutes]
     status_label.text = "%s   |   %d G" % [time_str, money]
 
-## Input handler to manage zoom and tooltip positioning.
+## Input handler to manage zoom, panning and tooltip positioning.
 func _unhandled_input(event: InputEvent) -> void:
-    # Mouse wheel zoom with cursor focus.  When the user scrolls, adjust the
-    # zoom level and reposition the map so that the location under the
-    # cursor remains under the cursor after zooming.  The zoom is clamped
-    # between min_zoom and max_zoom.  After adjusting position, clamp
-    # the map within the available area so it does not drift off screen.
     if event is InputEventMouseButton:
         var mb := event as InputEventMouseButton
+        # Handle zoom in/out using the mouse wheel.  When zooming we keep
+        # the point under the cursor stationary relative to the world by
+        # computing its local coordinate before scaling and repositioning
+        # the map accordingly【130249362971839†L119-L144】.
         if mb.pressed and (mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN):
-            # Current viewport and UI sizes
-            var view_size : Vector2 = get_viewport_rect().size
-            var top_height : float = top_bar.get_rect().size.y if top_bar else 0.0
-            var console_ratio : float = 0.25
-            var console_height : float = view_size.y * console_ratio
-            var available_origin : Vector2 = Vector2(0.0, top_height)
-            var available_size : Vector2 = Vector2(view_size.x, view_size.y - top_height - console_height)
-            # Local map coordinates of the mouse before zoom
             var mouse_pos : Vector2 = mb.position
             var local_before : Vector2 = (mouse_pos - map_container.position) / current_zoom
-            # Adjust zoom level
             if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
                 current_zoom = clamp(current_zoom + 0.1, min_zoom, max_zoom)
             elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
                 current_zoom = clamp(current_zoom - 0.1, min_zoom, max_zoom)
-            # Apply new scale
             map_container.scale = Vector2(current_zoom, current_zoom)
-            # Calculate new map size
-            var map_scaled_size : Vector2 = map_sprite.texture.get_size() * current_zoom
-            # Set map position so that local_before stays under the cursor
             map_container.position = mouse_pos - local_before * current_zoom
-            # Clamp the position within available area
-            var min_pos : Vector2 = Vector2(available_origin.x + available_size.x - map_scaled_size.x, available_origin.y + available_size.y - map_scaled_size.y)
-            var max_pos : Vector2 = available_origin
-            map_container.position.x = clamp(map_container.position.x, min_pos.x, max_pos.x)
-            map_container.position.y = clamp(map_container.position.y, min_pos.y, max_pos.y)
-    # Update tooltip position
-    if event is InputEventMouseMotion and tooltip_label and tooltip_label.visible:
+            _clamp_map_position()
+        # Handle start and end of panning when left mouse button is pressed.
+        elif mb.button_index == MOUSE_BUTTON_LEFT:
+            if mb.pressed:
+                is_panning = true
+                pan_last_pos = mb.position
+            else:
+                is_panning = false
+    elif event is InputEventMouseMotion:
         var mm := event as InputEventMouseMotion
-        tooltip_label.position = mm.position + Vector2(10, -10)
-
+        # When panning, move the map by the mouse motion's relative movement
+        # and clamp the position to keep the map within bounds.
+        if is_panning:
+            map_container.position += mm.relative
+            _clamp_map_position()
+        # Update the tooltip position if visible.
+        if tooltip_label and tooltip_label.visible:
+            tooltip_label.position = mm.position + Vector2(10, -10)
