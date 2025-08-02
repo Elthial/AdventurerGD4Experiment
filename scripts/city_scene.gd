@@ -63,7 +63,9 @@ func _ready() -> void:
     # base so they know where to return after a dungeon run.
     var adv := AdventurerScene.instantiate()
     adv.global_position = HQ_POS
-    adv.name = "Bell"  # placeholder name
+    # Assign a display name to the adventurer.  Use the 'adname' property
+    # rather than 'name' because Node2D already defines a 'name' property.
+    adv.adname = "Bell"  # placeholder name
     adv.home_base_pos = HQ_POS
     adv_container.add_child(adv)
 

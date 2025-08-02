@@ -25,7 +25,11 @@ var stamina : float = 100.0
 var morale : float = 100.0
 
 ## Name of this adventurer. Set by the spawner for debugging.
-var name : String = "Adventurer"
+## Use a unique property name (adname) instead of 'name' because Node2D
+## already defines a 'name' property.  Redeclaring 'name' would cause
+## runtime errors.  'adname' stores the adventurer's display name for
+## debugging and UI purposes.
+var adname : String = "Adventurer"
 
 ## Position of the familia home base (HQ). Used when returning from dungeon.
 var home_base_pos : Vector2 = Vector2.ZERO
@@ -68,7 +72,9 @@ func _physics_process(delta : float) -> void:
                 state_str = "ESCAPE"
             _:
                 state_str = str(state)
-        print("%s | Pos: %s | State: %s | HP: %.1f" % [name, global_position, state_str, hp])
+        # Print the adventurer's display name (adname) instead of the Node2D
+        # built-in name property to avoid conflicts.
+        print("%s | Pos: %s | State: %s | HP: %.1f" % [adname, global_position, state_str, hp])
 
     match state:
         AdventurerState.TRAVEL:
