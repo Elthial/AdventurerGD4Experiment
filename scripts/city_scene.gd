@@ -12,6 +12,11 @@ var top_bar : Control
 var console_label : RichTextLabel
 var tooltip_label : Label
 
+## UI layer used to display controls.  A CanvasLayer ensures that UI
+## elements are drawn on top of the game world and that Control anchors
+## work relative to the viewport.
+var ui_layer : CanvasLayer
+
 ## Zoom parameters
 var min_zoom : float = 1.0
 var max_zoom : float = 1.0
@@ -78,6 +83,11 @@ func _create_location_icon(name : String, pos : Vector2, colour : Color) -> void
     map_container.add_child(area)
 
 func _ready() -> void:
+    # Create a canvas layer for UI elements.  Control nodes added to this
+    # layer will anchor relative to the viewport instead of the game world.
+    ui_layer = CanvasLayer.new()
+    add_child(ui_layer)
+
     # Create a container for the map and its overlays (adventurers and icons).
     map_container = Node2D.new()
     add_child(map_container)
@@ -89,18 +99,29 @@ func _ready() -> void:
         adv_container.get_parent().remove_child(adv_container)
         map_container.add_child(adv_container)
 
-    # Compute the minimum zoom so that the map fits entirely within the viewport.
-    var view_size : Vector2 = get_viewport_rect().size
-    var map_size : Vector2 = map_sprite.texture.get_size()
-    min_zoom = min(view_size.x / map_size.x, view_size.y / map_size.y)
-    max_zoom = 1.0
-    current_zoom = min_zoom
-    _update_map_zoom()
-
-    # Create UI elements: top bar, tooltip and console.
+    # Create UI elements: top bar, tooltip and console.  They must be
+    # created before computing the map zoom so that their sizes are taken
+    # into account when calculating the available area.
     _create_top_bar()
     _create_tooltip()
     _create_console()
+
+    # Compute the minimum zoom so that the map fits entirely within the
+    # available portion of the viewport.  We reserve a fixed fraction
+    # (25%) of the screen for the console and subtract the top bar height.
+    var view_size : Vector2 = get_viewport_rect().size
+    var map_tex_size : Vector2 = map_sprite.texture.get_size()
+    var top_height : float = top_bar.get_rect().size.y
+    var console_ratio : float = 0.25
+    var console_height : float = view_size.y * console_ratio
+    var available_height : float = view_size.y - top_height - console_height
+    # Avoid negative values if the window is very small
+    if available_height < 1.0:
+        available_height = 1.0
+    min_zoom = min(view_size.x / map_tex_size.x, available_height / map_tex_size.y)
+    max_zoom = 1.0
+    current_zoom = min_zoom
+    _update_map_zoom()
 
     # Create service icons with tooltips and add them to the map container.
     _create_location_icon("HQ", HQ_POS, ICON_COLOURS["hq"])
@@ -175,16 +196,31 @@ func _update_map_zoom() -> void:
         return
     # Apply uniform scale to the container
     map_container.scale = Vector2(current_zoom, current_zoom)
-    # Compute scaled map size and center it within the viewport
+    # Compute the available region for the map by subtracting the top bar
+    # height and the console portion from the viewport.  The console is
+    # anchored to the bottom quarter of the screen (0.25), and the top bar
+    # has a fixed pixel height.
     var view_size : Vector2 = get_viewport_rect().size
-    var map_size : Vector2 = map_sprite.texture.get_size() * current_zoom
-    # Position container so that the map is centered
-    map_container.position = view_size * 0.5 - map_size * 0.5
+    var top_height : float = 0.0
+    if top_bar:
+        top_height = top_bar.get_rect().size.y
+    var console_ratio : float = 0.25
+    var console_height : float = view_size.y * console_ratio
+    var available_size : Vector2 = Vector2(view_size.x, view_size.y - top_height - console_height)
+    var map_scaled_size : Vector2 = map_sprite.texture.get_size() * current_zoom
+    # Compute the top-left origin of the map area (below top bar)
+    var origin : Vector2 = Vector2(0, top_height)
+    # Center the scaled map within the available area
+    var offset : Vector2 = (available_size - map_scaled_size) * 0.5
+    map_container.position = origin + offset
 
 ## Creates the top bar UI displaying familia name, log placeholder, in-game time and money.
 func _create_top_bar() -> void:
     top_bar = PanelContainer.new()
     top_bar.name = "TopBar"
+    # Anchor the top bar to the top of the viewport.  It spans the full
+    # width and has a fixed height (40 pixels).  Offsets on bottom
+    # define the height in pixels.
     top_bar.anchor_left = 0.0
     top_bar.anchor_top = 0.0
     top_bar.anchor_right = 1.0
@@ -193,7 +229,7 @@ func _create_top_bar() -> void:
     top_bar.offset_top = 0.0
     top_bar.offset_right = 0.0
     top_bar.offset_bottom = 40.0
-    add_child(top_bar)
+    ui_layer.add_child(top_bar)
     var hbox := HBoxContainer.new()
     hbox.name = "HBoxContainer"
     hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -218,34 +254,54 @@ func _create_tooltip() -> void:
     tooltip_label = Label.new()
     tooltip_label.visible = false
     tooltip_label.modulate = Color(1,1,1,1)
-    tooltip_label.add_theme_color_override("font_color", Color(1,1,1))
-    tooltip_label.add_theme_stylebox_override("normal", StyleBoxFlat.new())
-    tooltip_label.get_theme_stylebox("normal").bg_color = Color(0,0,0,0.7)
-    tooltip_label.get_theme_stylebox("normal").content_margin_left = 4
-    tooltip_label.get_theme_stylebox("normal").content_margin_right = 4
-    tooltip_label.get_theme_stylebox("normal").content_margin_top = 2
-    tooltip_label.get_theme_stylebox("normal").content_margin_bottom = 2
+    # Configure tooltip styling: white text on semi-transparent dark background
+    var tooltip_style := StyleBoxFlat.new()
+    tooltip_style.bg_color = Color(0, 0, 0, 0.7)
+    tooltip_style.content_margin_left = 4
+    tooltip_style.content_margin_right = 4
+    tooltip_style.content_margin_top = 2
+    tooltip_style.content_margin_bottom = 2
+    tooltip_label.add_theme_stylebox_override("normal", tooltip_style)
+    tooltip_label.add_theme_color_override("font_color", Color(1, 1, 1))
     tooltip_label.z_index = 1000
-    add_child(tooltip_label)
+    ui_layer.add_child(tooltip_label)
 
 ## Creates a console (RichTextLabel) anchored to the bottom of the screen to
 ## display debug messages from adventurers.
 func _create_console() -> void:
+    # Create a PanelContainer to hold the console and provide a dark background
+    var console_container := PanelContainer.new()
+    console_container.name = "ConsoleContainer"
+    # Anchor it to occupy the bottom quarter of the viewport
+    console_container.anchor_left = 0.0
+    console_container.anchor_right = 1.0
+    console_container.anchor_top = 0.75
+    console_container.anchor_bottom = 1.0
+    console_container.offset_left = 0.0
+    console_container.offset_right = 0.0
+    console_container.offset_top = 0.0
+    console_container.offset_bottom = 0.0
+    var console_style := StyleBoxFlat.new()
+    console_style.bg_color = Color(0, 0, 0, 0.8)
+    console_container.add_theme_stylebox_override("panel", console_style)
+    ui_layer.add_child(console_container)
+
+    # RichTextLabel for displaying logs
     console_label = RichTextLabel.new()
     console_label.name = "Console"
     console_label.anchor_left = 0.0
     console_label.anchor_right = 1.0
-    console_label.anchor_top = 0.75
+    console_label.anchor_top = 0.0
     console_label.anchor_bottom = 1.0
-    console_label.offset_left = 0.0
-    console_label.offset_right = 0.0
-    console_label.offset_top = 0.0
-    console_label.offset_bottom = 0.0
+    console_label.offset_left = 8.0
+    console_label.offset_right = -8.0
+    console_label.offset_top = 4.0
+    console_label.offset_bottom = -4.0
     console_label.scroll_active = true
     console_label.fit_content = false
-    console_label.autowrap = true
-    console_label.set_v_scroll_bar(true)
-    add_child(console_label)
+    # Use white text colour for readability
+    console_label.add_theme_color_override("default_color", Color(1, 1, 1))
+    console_container.add_child(console_label)
 
 ## Handler for mouse entering a location icon.  Shows the tooltip with the name.
 func _on_icon_mouse_entered(name : String) -> void:
