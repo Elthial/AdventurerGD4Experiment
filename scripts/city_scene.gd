@@ -101,11 +101,11 @@ func _create_location_icon(location_name : String, pos : Vector2, tex : Texture2
 	map_container.add_child(area)
 
 func _ready() -> void:
-        randomize()
-        # Create a canvas layer for UI elements.  Control nodes added to this
-        # layer will anchor relative to the viewport instead of the game world.
-        ui_layer = CanvasLayer.new()
-        add_child(ui_layer)
+	randomize()
+	# Create a canvas layer for UI elements.  Control nodes added to this
+	# layer will anchor relative to the viewport instead of the game world.
+	ui_layer = CanvasLayer.new()
+	add_child(ui_layer)
 
 	# Create a container for the map and its overlays (adventurers and icons).
 	map_container = Node2D.new()
@@ -159,7 +159,7 @@ func _ready() -> void:
 
 	# Spawn an adventurer at the HQ.  Set its home and service locations.
 	var adv : Adventurer = AdventurerScene.instantiate()
-        adv.position = HQ_POS
+	adv.position = HQ_POS
 	adv.adname = "Bell"  # placeholder name
 	adv.home_base_pos = HQ_POS
 	adv.dungeon_pos = DUNGEON_POS
@@ -203,19 +203,22 @@ func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
 	# Travel to the dungeon entrance
 	adv.set_travel(DUNGEON_POS)
 	# Wait until the adventurer is close to the dungeon
-        while adv.position.distance_to(DUNGEON_POS) > 5.0:
+	while adv.position.distance_to(DUNGEON_POS) > 5.0:
 		await get_tree().process_frame
+		
 	# Start the dungeon run
 	adv.start_dungeon_run(run)
-        # Wait while the adventurer is inside the dungeon or escaping
-        while adv.state == Adventurer.AdventurerState.DUNGEON or adv.state == Adventurer.AdventurerState.ESCAPE:
-                await get_tree().process_frame
-        # Award a random amount of gold after exiting the dungeon
-        var reward := randi_range(100, 1000)
-        money += reward
-        # Travel back home
-        adv.set_travel(HQ_POS)
-        while adv.position.distance_to(HQ_POS) > 5.0:
+	
+	# Wait while the adventurer is inside the dungeon or escaping
+	while adv.state == Adventurer.AdventurerState.DUNGEON or adv.state == Adventurer.AdventurerState.ESCAPE:
+		await get_tree().process_frame
+	
+	# Award a random amount of gold after exiting the dungeon
+	var reward := randi_range(100, 1000)
+	money += reward
+	# Travel back home
+	adv.set_travel(HQ_POS)
+	while adv.position.distance_to(HQ_POS) > 5.0:
 		await get_tree().process_frame
 	# At this point the adventurer has completed the cycle.  Additional
 	# behaviour (such as assigning a new task) could be triggered here.

@@ -84,11 +84,11 @@ func set_need(type : String, duration : float) -> void:
 	need_timer = duration
 
 func start_dungeon_run(run : DungeonRun) -> void:
-        state = AdventurerState.DUNGEON
-        dungeon_run = run
-        # Lock the adventurer to the dungeon entrance
-        position = dungeon_pos
-        target_position = dungeon_pos
+		state = AdventurerState.DUNGEON
+		dungeon_run = run
+		# Lock the adventurer to the dungeon entrance
+		position = dungeon_pos
+		target_position = dungeon_pos
 
 func _physics_process(delta : float) -> void:
 	# Decrease needs over time.  Sleepiness decreases at a constant rate,
@@ -106,23 +106,23 @@ func _physics_process(delta : float) -> void:
 	var boredom_multiplier := 1.5
 	if state == AdventurerState.DUNGEON:
 		boredom_multiplier = 0.5
-        boredom -= base_decay * boredom_multiplier
-        # Clamp needs and HP to valid ranges
-        hunger = clamp(hunger, 0.0, 100.0)
-        sleepiness = clamp(sleepiness, 0.0, 100.0)
-        boredom = clamp(boredom, 0.0, 100.0)
-        hp = clamp(hp, 0.0, max_hp)
+		boredom -= base_decay * boredom_multiplier
+		# Clamp needs and HP to valid ranges
+		hunger = clamp(hunger, 0.0, 100.0)
+		sleepiness = clamp(sleepiness, 0.0, 100.0)
+		boredom = clamp(boredom, 0.0, 100.0)
+		hp = clamp(hp, 0.0, max_hp)
 
-        # If not currently fulfilling a need and not escaping/dungeon, check for low needs
-        if state == AdventurerState.TRAVEL and pending_need_type == "" and need_type == "":
-                if hp <= HEALTH_THRESHOLD:
-                        _seek_need("heal", 6.0)
-                elif hunger <= NEED_THRESHOLD:
-                        _seek_need("eat", 3.0)
-                elif sleepiness <= NEED_THRESHOLD:
-                        _seek_need("sleep", 5.0)
-                elif boredom <= NEED_THRESHOLD:
-                        _seek_need("entertain", 4.0)
+		# If not currently fulfilling a need and not escaping/dungeon, check for low needs
+		if state == AdventurerState.TRAVEL and pending_need_type == "" and need_type == "":
+				if hp <= HEALTH_THRESHOLD:
+						_seek_need("heal", 6.0)
+				elif hunger <= NEED_THRESHOLD:
+						_seek_need("eat", 3.0)
+				elif sleepiness <= NEED_THRESHOLD:
+						_seek_need("sleep", 5.0)
+				elif boredom <= NEED_THRESHOLD:
+						_seek_need("entertain", 4.0)
 
 	# Debug output roughly once per second
 	_debug_timer += delta
@@ -141,9 +141,8 @@ func _physics_process(delta : float) -> void:
 				state_str = "ESCAPE"
 			_:
 				state_str = str(state)
-                var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [
-                        adname, position.round(), state_str, hp, hunger, sleepiness, boredom
-                ]
+		
+		var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [adname, position.round(), state_str, hp, hunger, sleepiness, boredom]
 		print(msg)
 		emit_signal("debug_output", msg)
 
@@ -158,13 +157,13 @@ func _physics_process(delta : float) -> void:
 			_update_escape(delta)
 
 func _update_travel(delta : float) -> void:
-        var dir : Vector2 = target_position - position
-        var distance : float = dir.length()
-        if distance > 5.0:
-                dir = dir.normalized()
-                position += dir * speed * delta
-        else:
-                _arrive_at_destination()
+		var dir : Vector2 = target_position - position
+		var distance : float = dir.length()
+		if distance > 5.0:
+				dir = dir.normalized()
+				position += dir * speed * delta
+		else:
+				_arrive_at_destination()
 
 func _arrive_at_destination() -> void:
 	# Called when the adventurer reaches its travel destination.  If a
@@ -188,41 +187,41 @@ func _update_need(delta : float) -> void:
 func _finish_need() -> void:
 	# Restore stats depending on the need fulfilled
 	match need_type:
-                "sleep":
-                        stamina = 100.0
-                        sleepiness = 100.0
-                "eat":
-                        stamina = 100.0
-                        hunger = 100.0
-                "entertain":
-                        morale = 100.0
-                        boredom = 100.0
-                "heal":
-                        hp = max_hp
-        need_type = ""
-        # After finishing a need we'll return to travel state and await new orders
-        state = AdventurerState.TRAVEL
+		"sleep":
+			stamina = 100.0
+			sleepiness = 100.0
+		"eat":
+			stamina = 100.0
+			hunger = 100.0
+		"entertain":
+			morale = 100.0
+			boredom = 100.0
+		"heal":
+			hp = max_hp
+	need_type = ""
+	# After finishing a need we'll return to travel state and await new orders
+	state = AdventurerState.TRAVEL
 
 func _update_dungeon(delta : float) -> void:
-        if dungeon_run:
-                # Remain fixed at the dungeon position during the run
-                position = dungeon_pos
-                dungeon_run.update(delta, self)
-                # If the dungeon_run requests exiting, change state
-                if dungeon_run.exiting:
-                        state = AdventurerState.ESCAPE
+	if dungeon_run:
+		# Remain fixed at the dungeon position during the run
+		position = dungeon_pos
+		dungeon_run.update(delta, self)
+		# If the dungeon_run requests exiting, change state
+		if dungeon_run.exiting:
+			state = AdventurerState.ESCAPE
 
 func _update_escape(delta : float) -> void:
-        if dungeon_run:
-                # Stay locked to the dungeon until the escape finishes
-                position = dungeon_pos
-                dungeon_run.update_escape(delta, self)
-                if dungeon_run.finished:
-                        # Finished returning from the dungeon
-                        dungeon_run = null
-                        # Set the state back to travel and head home
-                        state = AdventurerState.TRAVEL
-                        set_travel(home_base_pos)
+	if dungeon_run:
+		# Stay locked to the dungeon until the escape finishes
+		position = dungeon_pos
+		dungeon_run.update_escape(delta, self)
+		if dungeon_run.finished:
+			# Finished returning from the dungeon
+			dungeon_run = null
+			# Set the state back to travel and head home
+			state = AdventurerState.TRAVEL
+			set_travel(home_base_pos)
 
 ## Internal helper used to initiate travelling to satisfy a need.  The
 ## destination and duration depend on the need type.  This sets
@@ -230,18 +229,18 @@ func _update_escape(delta : float) -> void:
 ## move the adventurer.  The actual need will be processed in
 ## _arrive_at_destination().
 func _seek_need(type : String, duration : float) -> void:
-        var dest : Vector2 = position
-        match type:
-                "sleep":
-                        dest = home_base_pos
-                "eat":
-                        dest = inn_pos
-                "entertain":
-                        dest = blacksmith_pos
-                "heal":
-                        dest = healer_pos
-                _:
-                        dest = home_base_pos
+	var dest : Vector2 = position
+	match type:
+		"sleep":
+			dest = home_base_pos
+		"eat":
+			dest = inn_pos
+		"entertain":
+			dest = blacksmith_pos
+		"heal":
+			dest = healer_pos
+		_:
+			dest = home_base_pos
 	pending_need_type = type
 	pending_need_duration = duration
 	set_travel(dest)

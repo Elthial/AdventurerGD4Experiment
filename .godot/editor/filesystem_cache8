@@ -1,7 +1,7 @@
 ea4bc82a6ad023ab7ee23ee620429895
-::res://::1754166593
+::res://::1754250947
 readme.txt::TextFile::-1::1754160041::0::1::::<><>::
-::res://assets/::1754172092
+::res://assets/::1754172102
 blacksmith_icon.png::CompressedTexture2D::9209833039339983746::1754172092::1754172102::1::::<><>::
 dot.png::CompressedTexture2D::4385114673392854016::1754162028::1754162461::1::::<><>::
 dungeon_icon.png::CompressedTexture2D::6724306958112981885::1754172092::1754172102::1::::<><>::
@@ -9,10 +9,10 @@ healer_icon.png::CompressedTexture2D::3887309956309646443::1754172092::175417210
 hq_icon.png::CompressedTexture2D::3050151464179435471::1754172092::1754172102::1::::<><>::
 inn_icon.png::CompressedTexture2D::2380126654487889936::1754172092::1754172102::1::::<><>::
 orario_map.png::CompressedTexture2D::3760433683409051845::1754162028::1754162461::1::::<><>::
-::res://scenes/::1754165648
-adventurer.tscn::PackedScene::-1::1754162028::0::1::::<><>::res://scripts/adventurer.gd<>res://assets/dot.png
-city_scene.tscn::PackedScene::1618113388574644361::1754163651::0::1::::<><>::res://scripts/city_scene.gd<>uid://bttt18eg4yx54::::res://assets/orario_map.png
-::res://scripts/::1754172092
-adventurer.gd::GDScript::-1::1754172090::0::1::::Adventurer<>Node2D<>::
-city_scene.gd::GDScript::-1::1754172092::0::1::::<>Node2D<>::
-dungeon_run.gd::GDScript::-1::1754172090::0::1::::DungeonRun<>Node<>::
+::res://scenes/::1754214245
+adventurer.tscn::PackedScene::4880437725362425181::1754214245::0::1::::<><>::res://scripts/adventurer.gd<>uid://b3qggy5dg0qjg::::res://assets/dot.png
+city_scene.tscn::PackedScene::1618113388574644361::1754214245::0::1::::<><>::res://scripts/city_scene.gd<>uid://bttt18eg4yx54::::res://assets/orario_map.png
+::res://scripts/::1754250923
+adventurer.gd::GDScript::-1::1754250923::0::1::::Adventurer<>Node2D<>::
+city_scene.gd::GDScript::-1::1754250923::0::1::::<>Node2D<>::
+dungeon_run.gd::GDScript::-1::1754172106::0::1::::DungeonRun<>Node<>::
