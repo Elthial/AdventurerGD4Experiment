@@ -101,10 +101,11 @@ func _create_location_icon(location_name : String, pos : Vector2, tex : Texture2
 	map_container.add_child(area)
 
 func _ready() -> void:
-	# Create a canvas layer for UI elements.  Control nodes added to this
-	# layer will anchor relative to the viewport instead of the game world.
-	ui_layer = CanvasLayer.new()
-	add_child(ui_layer)
+        randomize()
+        # Create a canvas layer for UI elements.  Control nodes added to this
+        # layer will anchor relative to the viewport instead of the game world.
+        ui_layer = CanvasLayer.new()
+        add_child(ui_layer)
 
 	# Create a container for the map and its overlays (adventurers and icons).
 	map_container = Node2D.new()
@@ -206,11 +207,14 @@ func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
 		await get_tree().process_frame
 	# Start the dungeon run
 	adv.start_dungeon_run(run)
-	# Wait while the adventurer is inside the dungeon or escaping
-	while adv.state == Adventurer.AdventurerState.DUNGEON or adv.state == Adventurer.AdventurerState.ESCAPE:
-		await get_tree().process_frame
-	# Travel back home
-	adv.set_travel(HQ_POS)
+        # Wait while the adventurer is inside the dungeon or escaping
+        while adv.state == Adventurer.AdventurerState.DUNGEON or adv.state == Adventurer.AdventurerState.ESCAPE:
+                await get_tree().process_frame
+        # Award a random amount of gold after exiting the dungeon
+        var reward := randi_range(100, 1000)
+        money += reward
+        # Travel back home
+        adv.set_travel(HQ_POS)
 	while adv.global_position.distance_to(HQ_POS) > 5.0:
 		await get_tree().process_frame
 	# At this point the adventurer has completed the cycle.  Additional
