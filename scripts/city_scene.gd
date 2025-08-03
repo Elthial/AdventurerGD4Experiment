@@ -159,7 +159,7 @@ func _ready() -> void:
 
 	# Spawn an adventurer at the HQ.  Set its home and service locations.
 	var adv : Adventurer = AdventurerScene.instantiate()
-	adv.global_position = HQ_POS
+        adv.position = HQ_POS
 	adv.adname = "Bell"  # placeholder name
 	adv.home_base_pos = HQ_POS
 	adv.dungeon_pos = DUNGEON_POS
@@ -203,7 +203,7 @@ func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
 	# Travel to the dungeon entrance
 	adv.set_travel(DUNGEON_POS)
 	# Wait until the adventurer is close to the dungeon
-	while adv.global_position.distance_to(DUNGEON_POS) > 5.0:
+        while adv.position.distance_to(DUNGEON_POS) > 5.0:
 		await get_tree().process_frame
 	# Start the dungeon run
 	adv.start_dungeon_run(run)
@@ -215,7 +215,7 @@ func run_dungeon_cycle(adv : Adventurer, run : DungeonRun) -> void:
         money += reward
         # Travel back home
         adv.set_travel(HQ_POS)
-	while adv.global_position.distance_to(HQ_POS) > 5.0:
+        while adv.position.distance_to(HQ_POS) > 5.0:
 		await get_tree().process_frame
 	# At this point the adventurer has completed the cycle.  Additional
 	# behaviour (such as assigning a new task) could be triggered here.

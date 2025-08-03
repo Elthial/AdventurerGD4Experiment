@@ -87,7 +87,7 @@ func start_dungeon_run(run : DungeonRun) -> void:
         state = AdventurerState.DUNGEON
         dungeon_run = run
         # Lock the adventurer to the dungeon entrance
-        global_position = dungeon_pos
+        position = dungeon_pos
         target_position = dungeon_pos
 
 func _physics_process(delta : float) -> void:
@@ -141,9 +141,9 @@ func _physics_process(delta : float) -> void:
 				state_str = "ESCAPE"
 			_:
 				state_str = str(state)
-		var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [
-			adname, global_position.round(), state_str, hp, hunger, sleepiness, boredom
-		]
+                var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [
+                        adname, position.round(), state_str, hp, hunger, sleepiness, boredom
+                ]
 		print(msg)
 		emit_signal("debug_output", msg)
 
@@ -158,13 +158,13 @@ func _physics_process(delta : float) -> void:
 			_update_escape(delta)
 
 func _update_travel(delta : float) -> void:
-	var dir : Vector2 = target_position - global_position
-	var distance : float = dir.length()
-	if distance > 5.0:
-		dir = dir.normalized()
-		global_position += dir * speed * delta
-	else:
-		_arrive_at_destination()
+        var dir : Vector2 = target_position - position
+        var distance : float = dir.length()
+        if distance > 5.0:
+                dir = dir.normalized()
+                position += dir * speed * delta
+        else:
+                _arrive_at_destination()
 
 func _arrive_at_destination() -> void:
 	# Called when the adventurer reaches its travel destination.  If a
@@ -206,7 +206,7 @@ func _finish_need() -> void:
 func _update_dungeon(delta : float) -> void:
         if dungeon_run:
                 # Remain fixed at the dungeon position during the run
-                global_position = dungeon_pos
+                position = dungeon_pos
                 dungeon_run.update(delta, self)
                 # If the dungeon_run requests exiting, change state
                 if dungeon_run.exiting:
@@ -215,7 +215,7 @@ func _update_dungeon(delta : float) -> void:
 func _update_escape(delta : float) -> void:
         if dungeon_run:
                 # Stay locked to the dungeon until the escape finishes
-                global_position = dungeon_pos
+                position = dungeon_pos
                 dungeon_run.update_escape(delta, self)
                 if dungeon_run.finished:
                         # Finished returning from the dungeon
@@ -230,8 +230,8 @@ func _update_escape(delta : float) -> void:
 ## move the adventurer.  The actual need will be processed in
 ## _arrive_at_destination().
 func _seek_need(type : String, duration : float) -> void:
-	var dest : Vector2 = global_position
-	match type:
+        var dest : Vector2 = position
+        match type:
                 "sleep":
                         dest = home_base_pos
                 "eat":
