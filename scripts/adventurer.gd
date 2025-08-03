@@ -22,10 +22,10 @@ var dungeon_run : DungeonRun = null
 var stats : AdventurerStats = AdventurerStats.new()
 
 const NEED_DURATIONS = {
-        "heal": 6.0,
-        "eat": 3.0,
-        "sleep": 5.0,
-        "entertain": 4.0
+		"heal": 6.0,
+		"eat": 3.0,
+		"sleep": 5.0,
+		"entertain": 4.0
 }
 
 ## Name of this adventurer. Set by the spawner for debugging.
@@ -74,20 +74,20 @@ func set_need(type : String, duration : float) -> void:
 	need_timer = duration
 
 func start_dungeon_run(run : DungeonRun) -> void:
-		state = AdventurerState.DUNGEON
-		dungeon_run = run
-		# Lock the adventurer to the dungeon entrance
-		position = dungeon_pos
-		target_position = dungeon_pos
+	state = AdventurerState.DUNGEON
+	dungeon_run = run
+	# Lock the adventurer to the dungeon entrance
+	position = dungeon_pos
+	target_position = dungeon_pos
 
 func _physics_process(delta : float) -> void:
-        # Update needs and check if any require satisfaction.
-        stats.decay(delta, state)
+	# Update needs and check if any require satisfaction.
+	stats.decay(delta, state)
 
-        if state == AdventurerState.TRAVEL and pending_need_type == "" and need_type == "":
-                var low_need := stats.get_low_need()
-                if low_need != "":
-                        _seek_need(low_need, NEED_DURATIONS[low_need])
+	if state == AdventurerState.TRAVEL and pending_need_type == "" and need_type == "":
+		var low_need := stats.get_low_need()
+		if low_need != "":
+			_seek_need(low_need, NEED_DURATIONS[low_need])
 
 	# Debug output roughly once per second
 	_debug_timer += delta
@@ -107,7 +107,7 @@ func _physics_process(delta : float) -> void:
 			_:
 				state_str = str(state)
 		
-                var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [adname, position.round(), state_str, stats.hp, stats.hunger, stats.sleepiness, stats.boredom]
+		var msg := "%s | Pos: %s | State: %s | HP: %.1f | Hunger: %.0f | Sleep: %.0f | Boredom: %.0f" % [adname, position.round(), state_str, stats.hp, stats.hunger, stats.sleepiness, stats.boredom]
 		print(msg)
 		emit_signal("debug_output", msg)
 
@@ -150,10 +150,10 @@ func _update_need(delta : float) -> void:
 		_finish_need()
 
 func _finish_need() -> void:
-        stats.restore_need(need_type)
-        need_type = ""
-        # After finishing a need we'll return to travel state and await new orders
-        state = AdventurerState.TRAVEL
+		stats.restore_need(need_type)
+		need_type = ""
+		# After finishing a need we'll return to travel state and await new orders
+		state = AdventurerState.TRAVEL
 
 func _update_dungeon(delta : float) -> void:
 	if dungeon_run:

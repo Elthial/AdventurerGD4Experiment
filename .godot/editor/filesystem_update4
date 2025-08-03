@@ -2,3 +2,4 @@ res://scenes/city_scene.tscn
 res://scripts/adventurer.gd
 res://scripts/city_scene.gd
 res://scenes/adventurer.tscn
+res://scripts/dungeon_run.gd
