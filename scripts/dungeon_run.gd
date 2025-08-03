@@ -26,9 +26,9 @@ func _init(level_data : Array = []) -> void:
 func update(delta : float, adventurer : Object) -> void:
 	if finished:
 		return
-	# Check if we need to exit early due to low HP
-	if adventurer.hp < adventurer.max_hp * 0.3:
-		exiting = true
+        # Check if we need to exit early due to low HP
+        if adventurer.stats.hp < adventurer.stats.max_hp * 0.3:
+                exiting = true
 	var level = levels[current_level_index]
 	# Advance progress deeper into the level
 	progress += delta / level.travel_time
@@ -39,7 +39,7 @@ func update(delta : float, adventurer : Object) -> void:
 		var roll = randf()
 		if roll < level.spawn_probability:
 			# Apply damage from spawned monsters
-			adventurer.hp -= level.monster_damage
+                        adventurer.stats.hp -= level.monster_damage
 	# If we reach the end of the level
 	if progress >= 1.0:
 		progress = 0.0
@@ -58,8 +58,8 @@ func update_escape(delta : float, adventurer : Object) -> void:
 	if spawn_timer >= 1.5:
 		spawn_timer = 0.0
 		var roll = randf()
-		if roll < level.spawn_probability * 0.5:
-			adventurer.hp -= level.monster_damage
+                if roll < level.spawn_probability * 0.5:
+                        adventurer.stats.hp -= level.monster_damage
 	if progress <= 0.0:
 		# Move up a level
 		current_level_index -= 1
